@@ -1,0 +1,96 @@
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    background-color: #191919;
+    color: #fffffe;
+}
+
+body img {
+    position: absolute;
+    top: 0;
+    height: 9em;
+    width: 10em;
+    padding: auto;
+}
+
+a {
+    text-decoration: none;
+    color: #191919;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #fffffe;
+    color: #191919;
+    /* width: 22%;
+    height: 100%; */
+}
+
+.content-items {
+    list-style: none;
+    padding: 0;
+}
+.content-items li{
+    margin-bottom: 0.5em;
+}
+
+.timeclock-saludo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: #191919;
+    height: 9em;
+    background-color: #fffffe;
+}
+
+.greeting {
+    font-size: 2em;
+}
+
+.long-date, .current-time {
+    font-size: 0.9em;
+}
+
+.timeclock-saludo section {
+    text-align: left;
+}
+
+header {
+    position: absolute;
+    right: 0;
+}
+
+header span {
+    margin-right: auto;
+    padding: 10px;
+}
+
+.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+.content {
+    flex: 1;
+    padding: 20px;
+    margin-top: 2.2em;
+}
+
+.hola-mundo {
+    font-size: 2em;
+    color: #fffffe;
+    text-align: center;
+    /* margin-top: 20px; */
+    background-color: aquamarine;
+}

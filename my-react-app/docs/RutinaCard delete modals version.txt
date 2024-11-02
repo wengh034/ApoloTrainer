@@ -1,0 +1,342 @@
+import React, { useEffect, useState } from 'react';
+import { Modal, Button, Form } from 'react-bootstrap';
+import { saveAs } from 'file-saver';
+import { pdf } from '@react-pdf/renderer';
+import RoutinePdf from '../Printer/RoutinePdf';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+const RutinaCard = ({ rutina, onEliminarRutina }) => {
+  const [dias, setDias] = useState([]);
+  const [showAgregarDiaModal, setShowAgregarDiaModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDiaId, setSelectedDiaId] = useState(null);
+  const [newEjercicio, setNewEjercicio] = useState({
+    ejercicio: '',
+    peso: '',
+    serie: '',
+    repe: '',
+    comentario: ''
+  });
+  const [formDiaId, setFormDiaId] = useState(null);
+  const [ejercicios, setEjercicios] = useState({});
+  const [editDiaId, setEditDiaId] = useState(null);
+  const [editEjercicio, setEditEjercicio] = useState([]);
+  const [showConfirmDeleteDia, setShowConfirmDeleteDia] = useState(false);
+  const [showConfirmDeleteRutina, setShowConfirmDeleteRutina] = useState(false);
+  const [diaToDelete, setDiaToDelete] = useState(null);
+  const [rutinaToDelete, setRutinaToDelete] = useState(null);
+
+  const { IdRutina } = rutina;
+
+  const handleDownloadPdf = async () => {
+    try {
+      // Generar el documento PDF
+      const blob = await pdf(<RoutinePdf rutinaId={IdRutina} />).toBlob();
+
+      // Guardar el archivo PDF usando file-saver
+      saveAs(blob, `Rutina_${IdRutina}.pdf`);
+    } catch (error) {
+      console.error('Error al generar el PDF:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetch(`http://localhost:5000/api/rutinas/${rutina.IdRutina}/dias`)
+      .then(response => response.json())
+      .then(data => setDias(data.data))
+      .catch(error => console.error('Error al obtener los días:', error));
+  }, [rutina.IdRutina]);
+
+  useEffect(() => {
+    dias.forEach(dia => {
+      fetch(`http://localhost:5000/api/dias/${dia.IdDia}/ejercicios`)
+        .then(response => response.json())
+        .then(data => {
+          setEjercicios(prevEjercicios => ({
+            ...prevEjercicios,
+            [dia.IdDia]: data.data
+          }));
+        })
+        .catch(error => console.error('Error al obtener los ejercicios:', error));
+    });
+  }, [dias]);
+
+  const handleAgregarDia = () => {
+    fetch(`http://localhost:5000/api/rutinas/${rutina.IdRutina}/dias`, { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        setDias(prevDias => [...prevDias, data]);
+        setShowAgregarDiaModal(false);
+      })
+      .catch(error => console.error('Error al agregar el día:', error));
+  };
+
+  const handleAgregarEjercicioClick = diaId => {
+    setFormDiaId(diaId);
+  };
+
+  const handleInputChange = event => {
+    const { name, value } = event.target;
+    setNewEjercicio(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleGuardarEjercicio = () => {
+    fetch(`http://localhost:5000/api/dias/${formDiaId}/ejercicios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEjercicio),
+    })
+      .then(response => response.json())
+      .then(data => {
+        setEjercicios(prevEjercicios => ({
+          ...prevEjercicios,
+          [formDiaId]: [...(prevEjercicios[formDiaId] || []), data]
+        }));
+        setFormDiaId(null);
+        setNewEjercicio({ ejercicio: '', peso: '', serie: '', repe: '', comentario: '' });
+      })
+      .catch(error => console.error('Error al agregar el ejercicio:', error));
+  };
+
+  const handleCancelar = () => {
+    setFormDiaId(null);
+    setNewEjercicio({ ejercicio: '', peso: '', serie: '', repe: '', comentario: '' });
+  };
+
+  const handleEditClick = diaId => {
+    setEditDiaId(diaId);
+    setEditEjercicio(ejercicios[diaId] || []);
+    setShowEditModal(true);
+  };
+
+  const handleEditInputChange = (index, event) => {
+    const { name, value } = event.target;
+    const updatedEjercicio = [...editEjercicio];
+    updatedEjercicio[index][name] = value;
+    setEditEjercicio(updatedEjercicio);
+  };
+
+  const handleGuardarEditEjercicio = () => {
+    const updatePromises = editEjercicio.map(ejercicio =>
+      fetch(`http://localhost:5000/api/ejercicios/${ejercicio.IdEjercicio}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ejercicio),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to update exercise');
+          }
+          return response.json();
+        })
+    );
+
+    Promise.all(updatePromises)
+      .then(updatedEjercicios => {
+        setEjercicios(prevEjercicios => ({
+          ...prevEjercicios,
+          [editDiaId]: editEjercicio
+        }));
+        handleCloseEditModal(); // Usa la función para cerrar y resetear el estado
+      })
+      .catch(error => {
+        console.error('Error al guardar los ejercicios:', error);
+        alert('Error al guardar los ejercicios');
+      });
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditDiaId(null);
+    setEditEjercicio([]);
+  };
+
+  const handleEliminarDia = (diaId) => {
+    fetch(`http://localhost:5000/api/dias/${diaId}`, {
+      method: 'DELETE',
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Error al eliminar el día');
+      }
+      setDias(prevDias => prevDias.filter(dia => dia.IdDia !== diaId));
+    })
+    .catch(error => console.error('Error:', error));
+  };
+
+  const handleDeleteClick = (idRutina) => {
+    onEliminarRutina(idRutina);
+  };
+
+  const handleConfirmDeleteDia = (diaId) => {
+    setDiaToDelete(diaId);
+    setShowConfirmDeleteDia(true);
+  };
+  
+  const handleConfirmDeleteRutina = (idRutina) => {
+    setRutinaToDelete(idRutina);
+    setShowConfirmDeleteRutina(true);
+  };
+
+  const confirmEliminarDia = () => {
+    if (diaToDelete) {
+      handleEliminarDia(diaToDelete); // Usa la función real para eliminar el día
+    }
+    setShowConfirmDeleteDia(false);
+    setDiaToDelete(null);
+  };
+
+  const confirmEliminarRutina = () => {
+    if (rutinaToDelete) {
+      handleDeleteClick(rutinaToDelete); // Usa la función real para eliminar la rutina
+    }
+    setShowConfirmDeleteRutina(false);
+    setRutinaToDelete(null);
+  };
+
+  return (
+    <div className='marcador 3' style={{ border: '1px solid #ddd', borderRadius: '4px', margin: '10px', padding: '10px' }}>
+      <div className='row' style={{ margin: '20px' }}>
+        <div className='col-7'>
+          <h4>{rutina.NombreRutina}</h4>
+        </div>
+        <div className='col-3' style={{ textAlign: 'right', color:'' }}>
+          <Button variant="btn btn-sm btn-outline-dark custom-btn-outline-dark" onClick={() => setShowAgregarDiaModal(true)}>
+            <img className='svg-icon small' src="./src/assets/add_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt="+Día" />
+            <strong style={{color:'#534314'}}>Día</strong>
+          </Button>
+          <Button variant="btn btn-sm btn-outline-danger" onClick={() => handleConfirmDeleteRutina(rutina.IdRutina)}>Eliminar Rutina</Button>
+        </div>
+        <div className='col-2'>
+          <Button variant="btn btn-sm btn-outline-primary" onClick={handleDownloadPdf}>Descargar PDF</Button>
+        </div>
+      </div>
+      <ul>
+        {dias.map(dia => (
+          <li key={dia.IdDia} style={{ marginBottom: '20px' }}>
+            <div className='card'>
+              <div className='card-header'>
+                <div className='row'>
+                  <div className='col-10'>
+                    <h5>Día {dia.NumDia}</h5>
+                  </div>
+                  <div className='col-2 d-flex justify-content-between'>
+                    <Button className="btn btn-sm btn-warning custom-svg-btn" onClick={() => handleAgregarEjercicioClick(dia.IdDia)}>
+                      <img className='svg-icon small' src="./src/assets/add_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt="Añadir Ejercicio" />
+                    </Button>
+                    <Button className="btn btn-sm btn-info custom-svg-btn" onClick={() => handleEditClick(dia.IdDia)}>
+                      <img className='svg-icon small' src="./src/assets/edit_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt="Editar Ejercicios" />
+                    </Button>
+                    <Button className="btn btn-sm btn-danger custom-svg-btn" onClick={() => handleConfirmDeleteDia(dia.IdDia)}>
+                      <img className='svg-icon small' src="./src/assets/delete_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt="Eliminar Día" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className='card-body'>
+                {ejercicios[dia.IdDia] && ejercicios[dia.IdDia].length > 0 ? (
+                  <table className='table table-bordered'>
+                    <thead>
+                      <tr>
+                        <th>Ejercicio</th>
+                        <th>Peso</th>
+                        <th>Serie</th>
+                        <th>Repeticiones</th>
+                        <th>Comentario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ejercicios[dia.IdDia].map(ejercicio => (
+                        <tr key={ejercicio.IdEjercicio}>
+                          <td>{ejercicio.Ejercicio}</td>
+                          <td>{ejercicio.Peso}</td>
+                          <td>{ejercicio.Serie}</td>
+                          <td>{ejercicio.Repe}</td>
+                          <td>{ejercicio.Comentario}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>No hay ejercicios para este día.</p>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Modal de Confirmación para eliminar un Día */}
+      <Modal show={showConfirmDeleteDia} onHide={() => setShowConfirmDeleteDia(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Eliminación</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>¿Estás seguro de que deseas eliminar este día?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirmDeleteDia(false)}>Cancelar</Button>
+          <Button variant="danger" onClick={confirmEliminarDia}>Eliminar</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Confirmación para eliminar una Rutina */}
+      <Modal show={showConfirmDeleteRutina} onHide={() => setShowConfirmDeleteRutina(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Eliminación</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>¿Estás seguro de que deseas eliminar esta rutina?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirmDeleteRutina(false)}>Cancelar</Button>
+          <Button variant="danger" onClick={confirmEliminarRutina}>Eliminar</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal para agregar un nuevo Día */}
+      <Modal show={showAgregarDiaModal} onHide={() => setShowAgregarDiaModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Agregar Día</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>¿Deseas agregar un nuevo día a esta rutina?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAgregarDiaModal(false)}>Cancelar</Button>
+          <Button variant="primary" onClick={handleAgregarDia}>Agregar Día</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal para editar Ejercicios */}
+      <Modal show={showEditModal} onHide={handleCloseEditModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Editar Ejercicios del Día</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {editEjercicio.length > 0 ? (
+            <Form>
+              {editEjercicio.map((ejercicio, index) => (
+                <Form.Group key={ejercicio.IdEjercicio} controlId={`formEjercicio${index}`}>
+                  <Form.Label>Ejercicio {index + 1}</Form.Label>
+                  <Form.Control type="text" name="ejercicio" value={ejercicio.ejercicio} onChange={(e) => handleEditInputChange(index, e)} placeholder="Nombre del Ejercicio" />
+                  <Form.Control type="text" name="peso" value={ejercicio.peso} onChange={(e) => handleEditInputChange(index, e)} placeholder="Peso" />
+                  <Form.Control type="text" name="serie" value={ejercicio.serie} onChange={(e) => handleEditInputChange(index, e)} placeholder="Serie" />
+                  <Form.Control type="text" name="repe" value={ejercicio.repe} onChange={(e) => handleEditInputChange(index, e)} placeholder="Repeticiones" />
+                  <Form.Control type="text" name="comentario" value={ejercicio.comentario} onChange={(e) => handleEditInputChange(index, e)} placeholder="Comentario" />
+                </Form.Group>
+              ))}
+              <Button variant="primary" onClick={handleGuardarEditEjercicio}>Guardar Cambios</Button>
+            </Form>
+          ) : (
+            <p>No hay ejercicios para editar.</p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseEditModal}>Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+};
+
+export default RutinaCard;

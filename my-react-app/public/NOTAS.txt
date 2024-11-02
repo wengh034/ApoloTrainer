@@ -1,0 +1,3 @@
+####NOTAS####
+El PDF de las rutinas vuelve a tener el bug de cortar el contenido en el salto de página.
+El componente Chart tiene el bug de no mostrar el mensaje de que no hay datos y lanza error en consola
