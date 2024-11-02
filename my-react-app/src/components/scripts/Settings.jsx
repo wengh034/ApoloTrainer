@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Dropdown } from 'react-bootstrap';
 import SVGComponent from '../SVGComponent';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -149,24 +149,24 @@ useEffect(() => {
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size='lg'>
+    <Modal show={show} onHide={onClose} centered size='lg' backdrop="static">
       <Toaster position='top-right'/>
       <Modal.Header closeButton>
-        <Modal.Title>Configuraciones</Modal.Title>
+        <Modal.Title style={{fontFamily:'Calibri'}}>Configuraciones</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{height:'68vh'}}>
-        <p><b>Datos y Respaldo:</b></p>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <div style={{display:'flex', padding:'1em 2em', fontFamily:'Calibri', color:'#1f2937'}}>
+          <div style={{display:'flex', marginRight:'5em'}}>
             <div>
-                <Button variant='btn btn-sm' onClick={backupDatabase}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <SVGComponent src="./src/assets/backup.svg" color="#1f2937" />
-                    <span style={{ marginLeft: '3px' }}>Guardar</span>
-                  </div>
-                </Button>
+              <div style={{display:'flex'}}>
+                <div> <SVGComponent src="./src/assets/cloud.svg" color="#1f2937" /></div>
+                <div style={{ marginLeft: '3px'}}> <b>Datos y Respaldo:</b></div>
+                
               </div>
-              <div style={{display:'flex',alignItems:'center'}}>
-                <span style={{marginRight:'15px'}}>Intervalo de Respaldo Automático:</span>
+              
+              <span style={{fontWeight:'bolder'}}>Intervalo de Respaldo Automático (días):</span>
+              <div style={{display:'flex', alignItems:'center', marginBottom:'15px'}}>
+                <span>
                 <Form.Group>
                 <Form.Control
                   type="text"
@@ -174,39 +174,72 @@ useEffect(() => {
                   value={backupInterval}
                   onChange={(e) => setBackupInterval(e.target.value)}
                   required
-                  style={{width:'3em', marginRight:'10px'}}
+                  style={{width:'4em', marginRight:'10px', padding:'4px'}}
                 />
               </Form.Group>
-              <Button variant="btn btn-sm btn-warning" onClick={handleUpdate}>
+                </span>
+                <span>
+                <Button variant="btn btn-sm btn-light" onClick={handleUpdate}>
                 <SVGComponent src="./src/assets/update.svg" color="#1f2937" />
                 </Button>
+                </span>
+                <span>
+                </span>
+              </div>
+              <div style={{display:'flex', justifyContent:'flex-end'}}>
+              <Button variant='btn btn-sm btn-light' onClick={backupDatabase}>
+                  <div style={{ display: 'flex', alignItems:'center'}}>
+                    <div><SVGComponent src="./src/assets/backup.svg" color="#1f2937" /></div>
+                    <div style={{ fontSize:'16px', marginLeft: '3px', color:'#1f2937'}}> <b>Respaldo Manual</b></div>
+                  </div>
+                </Button>
+              </div>
+              </div>
+          </div>
+
+          <div>
+            <div style={{display:'flex', alignItems:'center'}}>
+              <div><SVGComponent src="./src/assets/backup_restore.svg" color="#1f2937" /></div>
+              <div style={{marginLeft:'3px'}}> <b>Restaurar</b></div>
             </div>
+          <span><b>Selecciona un archivo de respaldo:</b> </span>
+          <Dropdown>
+            <Dropdown.Toggle variant="secondary" id="backupDropdown" style={{ fontWeight: 'bold' }}>
+              {selectedBackup || '-- Selecciona un respaldo --'}
+            </Dropdown.Toggle>
+
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => setSelectedBackup('') } style={{ fontWeight: 'bold' }}>
+                -- Selecciona un respaldo --
+              </Dropdown.Item>
+              {backupFiles.map((file) => (
+                <Dropdown.Item key={file} onClick={() => setSelectedBackup(file)} style={{ fontWeight: 'bold' }}>
+                  {file}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+
+          <div style={{display:'flex', justifyContent:'flex-end'}}>
+            <Button variant='btn btn-sm btn-light' onClick={handleRestore} style={{ marginTop: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <SVGComponent src="./src/assets/backup_restore.svg" color="#1f2937" />
+                <span style={{ marginLeft: '3px', fontSize:'14px',fontWeight:'bolder', color:'#1f2937'}}>Restaurar</span>
+              </div>
+            </Button>
+          </div>
+          </div>
         </div>
+
        
        
         
 
         
         <div style={{ marginTop: '10px' }}>
-          <label htmlFor="backupSelect">Selecciona un archivo de respaldo:</label>
-          <select
-            id="backupSelect"
-            value={selectedBackup}
-            onChange={(e) => setSelectedBackup(e.target.value)}
-            style={{ marginLeft: '10px' }}
-          >
-            <option value="">-- Selecciona un respaldo --</option>
-            {backupFiles.map((file) => (
-              <option key={file} value={file}>{file}</option>
-            ))}
-          </select>
+          
         </div>
-        <Button variant='btn btn-sm' onClick={handleRestore} style={{ marginTop: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <SVGComponent src="./src/assets/backup_restore.svg" color="#1f2937" />
-            <span style={{ marginLeft: '3px' }}>Restaurar</span>
-          </div>
-        </Button>
+
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>
