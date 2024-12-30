@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cargando...</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      /* background-color: #fccc3c; */
+      background-color: #fff;
+    }
+
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      background-color: #ffd700;
+      width: 440px;
+      height: 250px;
+    }
+    .splash-content-content{
+      text-align: center;
+      align-content: center;
+
+    }
+    .splash-controls{
+      display: flex;
+      height: 23px;
+      justify-content: flex-end;
+    }
+    .splash-controls button{
+      background: none;
+      border: none;
+      height: 23px;
+      width: 30px;
+      justify-content: center;
+    }
+    .splash-controls button img{
+      margin: auto;
+      padding: 5px;
+    }
+    .splash-controls button:hover{
+  background-color: #ffc107;
+}
+.splash-controls button.closeException:hover {
+  background-color: #f43c44;
+}
+
+    .sun-icon {
+      position: relative;
+      /* background-color: #F59E0B; */
+      border-radius: 9999px; /* rounded-full */
+      /* padding: 2rem; */
+      width: 220px;
+      height: 160px;
+    }
+
+    .title {
+      font-size: 35px; /* text-4xl */
+      color: #1e1f22; /* text-amber-800 */
+      /* font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif; */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-weight: bolder;
+      margin:0;
+      /* padding-bottom: 20px; */
+      z-index: 2;
+    }
+/* Animación de los puntos */
+@keyframes loadingDots {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.loading-dot {
+  display: inline-block;
+  animation: loadingDots 1s infinite;
+}
+
+.loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+    .loading-text {
+      color: #1e1f22;
+      font-size: 18px;
+      font-family: 'Calibri';
+      margin: 0;
+      text-align: center;
+      z-index: 2;
+    }
+    .loading-container{
+      display: flex;
+      align-items: center;
+      margin: 10px;
+    }
+
+    /* @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-12px);
+      }
+    } */
+
+    /* Animación de opacidad */
+    .fade-in {
+      animation: fadeIn 1.5s ease-in-out forwards;
+    }
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+      /* 0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  } */
+    }
+    /* Animación del círculo en la esquina superior derecha */
+@keyframes topCircle {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(20px, -20px) rotate(180deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(360deg);
+  }
+}
+
+.top-circle {
+  /* position: absolute; */
+  /* top: 2rem;
+  right: 2rem; */
+  width: 3rem;
+  height: 3rem;
+  background-color: #1f2937; /* bg-gray-800 */
+  border-radius: 50%;
+  animation: topCircle 4s ease-in-out infinite;
+}
+.top-circle-content{
+  display: flex;
+  justify-content: flex-end;
+  padding:1em 2em 0 0;
+}
+/* Animación del borde circular en la esquina inferior izquierda */
+@keyframes bottomCircle {
+  0% {
+    transform: scale(1) rotate(0deg);
+    border-radius: 50%;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+    border-radius: 25%;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    border-radius: 50%;
+  }
+}
+
+.bottom-circle {
+  /* position: absolute;
+  bottom: 2rem;
+  left: 2rem; */
+  width: 2rem;
+  height: 2rem;
+  border: 4px solid #1f2937; /* border-gray-800 */
+  border-radius: 50%;
+  animation: bottomCircle 3s ease-in-out infinite;
+}
+.bottom-circle-content{
+  display: flex;
+  /* justify-content: flex-end; */
+  padding-left: 1em;
+  margin-top: 2.5em;
+}
+/* Animación del círculo amarillo detrás del título */
+@keyframes yellowCircle {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
+}
+/* @keyframes scaleAnimation {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  25% { transform: scale(2); }
+}
+@keyframes rotateAnimation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} */
+
+.yellow-circle {
+  /* animation: scaleAnimation 4s ease-in-out infinite, rotateAnimation 4s linear infinite; */
+  position: absolute; /* Cambiado de relative para que inset funcione */
+  inset: -1rem; /* Ajusta según el tamaño que desees */
+  width: 10rem; /* Define dimensiones explícitas */
+  height: 8rem;
+  margin: auto;
+  background-color: #fbbf24; /* bg-yellow-400 */
+  border-radius: 50%;
+  animation: yellowCircle 4s ease-in-out infinite;
+  z-index: 1; /* Para que quede detrás del título */
+}
+
+.yellow-circle-content {
+  display: flex;
+  position: relative; /* Crea el contexto para posicionar .yellow-circle */
+  justify-content: center; /* Centra el círculo */
+  align-items: center;
+  width: 100%; /* Asegura que ocupe todo el espacio necesario */
+  height: 100%;
+}
+
+  </style>
+  <script>
+    document.getElementById('minimizeBtn').addEventListener('click', () => {
+      window.electron.minimizeSplash();
+    });
+
+    document.getElementById('closeBtn').addEventListener('click', () => {
+    window.electron.closeSplash();
+  });
+  </script>
+</head>
+<body>
+  <div class="splash-content">
+    <div class="splash-controls">
+      <button id="minimizeBtn"><img src="./assets/minimize-black.svg"></button>
+      <button id="closeBtn" class="closeException"><img src="./assets/close-custom-black.svg"></button>
+    </div>
+    <div class="top-circle-content">
+        <div class="top-circle"></div>
+    </div>
+
+    <div class="splash-content-content">
+      <div class="yellow-circle-content">
+        <div class="yellow-circle"></div>
+        <span class="title fade-in" >Apolo Trainer</span>
+      </div>
+    </div>
+    <div class="loading-text">
+      Cargando
+      <span class="loading-dot">.</span>
+      <span class="loading-dot">.</span>
+      <span class="loading-dot">.</span>
+    </div>
+
+    <div class="bottom-circle-content">
+      <div class="bottom-circle"></div>
+  </div>
+  </div>
+</body>
+</html>
