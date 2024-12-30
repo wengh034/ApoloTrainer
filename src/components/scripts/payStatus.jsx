@@ -11,7 +11,6 @@ const PagoStatusButton = ({ idCuota, currentStatus, onStatusChange }) => {
   const [showMotivoModal, setShowMotivoModal] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [showError, setShowError] = useState(false);
-  const [toastType, setToastType] = useState(null);
 
   const handlePagoStatusChange = () => {
     // console.log('Current status:', currentStatus); // Verificación
@@ -49,8 +48,7 @@ const PagoStatusButton = ({ idCuota, currentStatus, onStatusChange }) => {
 
 
       const data = await response.json();
-      toast.success('Estado actualizado!');
-      setToastType('success');
+      showToast('success', 'Actualizado!');
   
       if (!response.ok) {
         throw new Error(data.message || 'Hubo un problema al actualizar el estado.');

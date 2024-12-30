@@ -16,7 +16,8 @@
     "serve": "vite preview",
     "electron-dev": "cross-env NODE_ENV=development electron .",
     "postinstall": "electron-builder install-app-deps",
-    "build:electron": "npm run build && electron-builder"
+    "build:electron": "npm run build && electron-builder",
+    "postversion": "node generateVersionFile.cjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^3.4.4",
