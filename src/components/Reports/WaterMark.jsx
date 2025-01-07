@@ -18,7 +18,7 @@ const Watermark = () => {
         // transform: 'rotate(-45deg)', // Rotación de 45 grados
       }}
     >
-      <SVGComponent src="./assets/logo-1.svg" color="red" />
+      {/* <SVGComponent src="./assets/logo-1.svg" color="red" /> */}
     </div>
   );
 };

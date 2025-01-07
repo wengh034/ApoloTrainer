@@ -11,7 +11,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3');
 const cors = require('cors');
 const dayjs = require('dayjs');
-
+const multer = require('multer');
 const fs = require('fs');
 const { router: periodControlRoutes, setDb } = require('./ClosingPeriod/PeriodControlBack.cjs');
 const { 
@@ -25,7 +25,7 @@ const {
 } = require('./backupManager.cjs');
 
 const app = express();
-const port = process.env.BACKEND_PORT || 5000; // Puerto dinámico o 5000 como valor por defecto
+const port = process.env.BACKEND_PORT || 5000;
 
 // Configuración para redirigir logs a un archivo en producción
 const logPath = path.join(__dirname, 'backend.log');
@@ -35,9 +35,28 @@ console.log = (...args) => {
   logStream.write(`${timestamp} ${args.join(' ')}\n`);
 };
 
-// Middleware
 app.use(cors());
 app.use(express.json());
+
+// Directorio para guardar las imágenes
+const uploadDirectory = path.join(__dirname, 'Illustrations');
+
+// Verificar y crear la carpeta si no existe
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory, { recursive: true });
+}
+
+// Configurar Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDirectory); // Guardar los archivos en el directorio configurado
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`); // Renombrar los archivos para evitar conflictos
+  },
+});
+
+const upload = multer({ storage });
 
 // Conectar a la base de datos SQLite
 const dbPath = path.join(__dirname, 'database.db'); // Ruta absoluta a la base de datos
@@ -244,7 +263,6 @@ app.get('/api/historial-estadisticas/:alumnoId', (req, res) => {
 // Endpoint para obtener historial de pagos por alumnoId
 app.get('/api/historial-pagos/:alumnoId', (req, res) => {
   const { alumnoId } = req.params;
-
   const query = `
     SELECT HP.IdHistorial, HP.FechaCambio, HP.Motivo
     FROM HPago HP
@@ -501,44 +519,106 @@ app.get('/api/dias/:diaId/ejercicios', (req, res) => {
   });
 });
 // Endpoint para actualizar un ejercicio
+// app.put('/api/ejercicios/:id', (req, res) => {
+//   const { id } = req.params;
+//   const { Ejercicio, Peso, Serie, Repe, Comentario } = req.body;
+
+//   if (!Ejercicio || !Peso || !Serie || !Repe || !Comentario) {
+//     res.status(400).json({ error: 'Todos los campos son requeridos' });
+//     return;
+//   }
+
+//   const sql = `
+//     UPDATE Ejercicio
+//     SET Ejercicio = ?, Peso = ?, Serie = ?, Repe = ?, Comentario = ?
+//     WHERE IdEjercicio = ?
+//   `;
+//   const params = [Ejercicio, Peso, Serie, Repe, Comentario, id];
+
+//   db.run(sql, params, function(err) {
+//     if (err) {
+//       res.status(500).json({ error: err.message });
+//       return;
+//     }
+//     if (this.changes === 0) {
+//       res.status(404).json({ error: 'Ejercicio no encontrado' });
+//       return;
+//     }
+//     res.json({
+//       message: 'success',
+//       data: {
+//         IdEjercicio: id,
+//         Ejercicio,
+//         Peso,
+//         Serie,
+//         Repe,
+//         Comentario
+//       },
+//     });
+//   });
+// });
 app.put('/api/ejercicios/:id', (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // ID del ejercicio a actualizar
   const { Ejercicio, Peso, Serie, Repe, Comentario } = req.body;
 
-  if (!Ejercicio || !Peso || !Serie || !Repe || !Comentario) {
-    res.status(400).json({ error: 'Todos los campos son requeridos' });
+  // Construcción dinámica de los campos a actualizar
+  const updates = [];
+  const params = [];
+
+  if (Ejercicio !== undefined) {
+    updates.push("Ejercicio = ?");
+    params.push(Ejercicio);
+  }
+  if (Peso !== undefined) {
+    updates.push("Peso = ?");
+    params.push(Peso);
+  }
+  if (Serie !== undefined) {
+    updates.push("Serie = ?");
+    params.push(Serie);
+  }
+  if (Repe !== undefined) {
+    updates.push("Repe = ?");
+    params.push(Repe);
+  }
+  if (Comentario !== undefined) {
+    updates.push("Comentario = ?");
+    params.push(Comentario);
+  }
+
+  // Validación: si no se envía ningún campo, retorna un error
+  if (updates.length === 0) {
+    res.status(400).json({ error: "No se proporcionaron campos para actualizar" });
     return;
   }
 
+  params.push(id); // Agregar el ID al final para el WHERE
+
   const sql = `
     UPDATE Ejercicio
-    SET Ejercicio = ?, Peso = ?, Serie = ?, Repe = ?, Comentario = ?
-    WHERE IdEjercicio = ?
-  `;
-  const params = [Ejercicio, Peso, Serie, Repe, Comentario, id];
+    SET ${updates.join(", ")}
+    WHERE IdEjercicio = ?`;
 
-  db.run(sql, params, function(err) {
+  // Ejecutar la consulta SQL
+  db.run(sql, params, function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
+
     if (this.changes === 0) {
-      res.status(404).json({ error: 'Ejercicio no encontrado' });
+      res.status(404).json({ error: "Ejercicio no encontrado" });
       return;
     }
+
+    // Retornar éxito con los datos actualizados
     res.json({
-      message: 'success',
-      data: {
-        IdEjercicio: id,
-        Ejercicio,
-        Peso,
-        Serie,
-        Repe,
-        Comentario
-      },
+      message: "success",
+      data: { id, ...req.body },
     });
   });
 });
+
 
 // Eliminar una Rutina junto con sus Días y Ejercicios
 app.delete('/api/rutinas/:idRutina', (req, res) => {
@@ -629,6 +709,41 @@ app.delete('/api/ejercicios/:idEjercicio', (req, res) => {
         }
     );
 });
+//Obtener los ejercicios con sus imágenes
+ app.get('/api/dias/:diaId/ejercicios-con-imagenes', (req, res) => {
+   const { diaId } = req.params;
+   const query = 'SELECT * FROM Ejercicio WHERE Dia = ?';
+
+   db.all(query, [diaId], (err, rows) => {
+     if (err) {
+       res.status(500).send({ message: 'Error al obtener los ejercicios' });
+     } else {
+       const validExtensions = ['.jpeg', '.jpg', '.png'];
+
+       const ejerciciosConImagenes = rows.map((ejercicio) => {
+         const nombreArchivo = ejercicio.Ejercicio.toLowerCase();
+
+//          Buscar archivo correspondiente en el directorio
+         const imagen = fs
+           .readdirSync(uploadDirectory)
+           .find((file) => {
+             const fileName = path.basename(file, path.extname(file)).toLowerCase();
+             const fileExtension = path.extname(file).toLowerCase();
+             return fileName === nombreArchivo && validExtensions.includes(fileExtension);
+           });
+
+//          Agregar la propiedad 'Imagen' al objeto del ejercicio
+         return {
+           ...ejercicio,
+           Imagen: imagen ? `./Illustrations/${imagen}` : null,
+         };
+       });
+
+       res.send({ data: ejerciciosConImagenes });
+     }
+   });
+ });
+
 // FIN NUEVOS ENDPOINT CREAR RUTINAS
 
 
@@ -1066,6 +1181,63 @@ app.get('/gyms/internos', (req, res) => {
 
 //GYM MANAGER FIN
 
+//Subir archivos de imagen
+app.post('/upload', upload.array('files'), (req, res) => {
+  const files = req.files;
+
+  // Validar si existe un archivo con el mismo nombre
+  for (const file of files) {
+    const filePath = path.join(uploadDirectory, file.originalname);
+
+    if (fs.existsSync(filePath)) {
+      return res.status(400).json({
+        message: `El archivo "${file.originalname}" ya existe. Por favor, elige un nombre diferente.`,
+      });
+    }
+  }
+
+  // Mover los archivos al directorio de destino
+  for (const file of files) {
+    const newPath = path.join(uploadDirectory, file.originalname);
+    fs.renameSync(file.path, newPath);
+  }
+
+  res.json({
+    message: 'Archivos subidos con éxito',
+    files: files.map((file) => ({
+      name: file.originalname,
+      path: `/illustrations/${file.originalname}`,
+    })),
+  });
+});
+
+app.use('/illustrations', express.static(uploadDirectory));
+//Fin subir archivos de imagen
+
+//Migraciones de db
+app.get('/migrate-db', async (req, res) => {
+  try {
+      const db = new sqlite3.Database('path/to/database.sqlite');
+      
+      // Obtener la versión de la base de datos
+      const currentVersion = await getDatabaseVersion(db);
+      console.log(`Versión actual: ${currentVersion}`);
+      
+      // Si la versión no está actualizada, puedes proceder con las migraciones.
+      if (currentVersion !== '1.1.0') {
+          // Aquí llamas a las funciones de migración que necesites
+          // Por ejemplo, para migrar a la versión 1.1.0:
+          await setDatabaseVersion(db, '1.1.0');
+          res.send('Base de datos migrada a la versión 1.1.0');
+      } else {
+          res.send('La base de datos ya está actualizada.');
+      }
+  } catch (err) {
+      console.error('Error de migración:', err);
+      res.status(500).send('Error al migrar la base de datos');
+  }
+});
+//Fin migraciones de db
 // CIERRE INICIO
 // Usar las rutas de cierre
 app.use('/api/periodcontrol', periodControlRoutes);

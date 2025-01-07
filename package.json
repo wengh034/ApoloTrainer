@@ -1,9 +1,9 @@
 {
   "name": "my-react-app",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "Gestión de entrenamientos personalizados.",
+  "description": "Gestor de Alumnos, Rutinas y Finanzas.",
   "author": "Wengh",
   "main": "electron.cjs",
   "scripts": {
@@ -17,7 +17,8 @@
     "electron-dev": "cross-env NODE_ENV=development electron .",
     "postinstall": "electron-builder install-app-deps",
     "build:electron": "npm run build && electron-builder",
-    "postversion": "node generateVersionFile.cjs"
+    "postversion": "node generateVersionFile.cjs",
+    "release": "electron-builder"
   },
   "dependencies": {
     "@react-pdf/renderer": "^3.4.4",
@@ -27,11 +28,13 @@
     "depd": "^2.0.0",
     "echarts": "^5.5.0",
     "electron-log": "^5.2.4",
+    "electron-updater": "^6.3.9",
     "file-saver": "^2.0.5",
     "html2pdf.js": "^0.10.2",
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.4",
     "react-dom": "^18.2.0",
+    "react-dropzone": "^14.3.5",
     "react-hot-toast": "^2.4.1",
     "react-modal": "^3.16.1",
     "react-svg": "^16.1.34",
@@ -66,28 +69,40 @@
     ],
     "extraResources": [
       {
+        "from": "node_modules/electron-updater",
+        "to": "node_modules/electron-updater",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
         "from": "backend",
         "to": "backend",
         "filter": [
           "**/*"
         ]
       },
-      "assets/**"
+      "assets/**/*"
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "./assets/ApT.png"
     },
     "mac": {
       "target": "dmg",
-      "icon": "assets/icon.icns"
+      "icon": "./assets/icon.icns"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "icon": "assets"
+      "icon": "./assets/ApT.png"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "wengh034",
+      "repo": "ApoloTrainer"
     }
   }
 }

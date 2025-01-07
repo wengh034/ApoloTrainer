@@ -6,7 +6,7 @@ import { showToast } from '../toastUtils';
 import SVGComponent from '../SVGComponent';
 import { getBaseUrl } from '@/Config.js';
 
-const RutinaCard = ({ rutina, onEliminarRutina, NombreAlumno, onClick}) => {
+const RutinaCard = ({ rutina, onEliminarRutina, NombreAlumno, AlumnoCat, onClick}) => {
   const [dias, setDias] = useState([]);
   const [showAgregarDiaModal, setShowAgregarDiaModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -244,7 +244,7 @@ const handleCloseEditModal = () => {
               <img className='svg-icon small' src="./assets/add.svg" alt="+Día" />
               <strong style={{color:'#464646'}}>Día</strong>
             </Button>
-            <RutinaDetail IdRutina={IdRutina} NombreRutina={rutina.NombreRutina} Alumno={NombreAlumno}/>
+            <RutinaDetail IdRutina={IdRutina} NombreRutina={rutina.NombreRutina} Alumno={NombreAlumno} Categoria={AlumnoCat}/>
             <Button variant="btn btn-sm btn-outline-secondary" 
               onClick={() => handleConfirmDeleteRutina(rutina.IdRutina)}
               style={{ marginLeft:'10px'}}>

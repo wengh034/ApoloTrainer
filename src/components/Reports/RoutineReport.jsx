@@ -4,7 +4,7 @@ import SVGComponent from '../SVGComponent';
 import html2pdf from 'html2pdf.js';
 import { getBaseUrl } from '@/Config.js';
 
-const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
+const RutinaDetail = ({ IdRutina, NombreRutina, Alumno, Categoria }) => {
   const [dias, setDias] = useState([]);
   const [ejercicios, setEjercicios] = useState({});
   const [showModal, setShowModal] = useState(false);
@@ -17,7 +17,7 @@ const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
   };
   const handleCloseModal = () => {
     setShowModal(false);
-    setDias([]); // Limpia los datos si es necesario
+    setDias([]);
     setEjercicios({});
   };
 
@@ -29,11 +29,10 @@ const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
       setDias(dataDias.data);
 
       const ejerciciosPromises = dataDias.data.map(async (dia) => {
-        const responseEjercicios = await fetch(`${getBaseUrl()}/api/dias/${dia.IdDia}/ejercicios`);
-        const dataEjercicios = await responseEjercicios.json();
-        return { [dia.IdDia]: dataEjercicios.data };
+        const responseEjercicios = await fetch(`${getBaseUrl()}/api/dias/${dia.IdDia}/ejercicios-con-imagenes`);
+      const dataEjercicios = await responseEjercicios.json();
+      return { [dia.IdDia]: dataEjercicios.data };
       });
-
       const ejerciciosData = await Promise.all(ejerciciosPromises);
       const ejerciciosMap = ejerciciosData.reduce((acc, cur) => ({ ...acc, ...cur }), {});
       setEjercicios(ejerciciosMap);
@@ -51,7 +50,7 @@ const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
       margin: [1, 0.8, 2, 0.8],
       filename: `informe_cierre_${NombreRutina}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 3 },
+      html2canvas: { scale: 3, useCORS: true},
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
   
@@ -100,7 +99,7 @@ const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
           }
   
                   // Guardar el PDF una vez que se haya terminado de agregar la marca de agua
-        pdf.save(`informe_cierre_${NombreRutina}.pdf`); // Especificar el nombre del archivo aquí
+        pdf.save(`Rutina ${Categoria}/${Alumno}_${NombreRutina}.pdf`); // Especificar el nombre del archivo aquí
       };
   
         img.onerror = () => {
@@ -108,9 +107,6 @@ const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
         };
       });
   };
-  
-  
-
 
   if (loading) return <p>Cargando datos...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
@@ -169,28 +165,72 @@ const RutinaDetail = ({ IdRutina, NombreRutina, Alumno }) => {
                 </div>
               </div>
             </div>
-            {dias.map((dia, index) => (
-  <div
-    key={dia.IdDia}
-    className="pdfPage"
-    style={{ marginTop: '20px', position: 'relative',  pageBreakAfter: index === dias.length - 1 ? 'auto' : 'always', }} // Forzar salto de página
-  >
-    <h5>Día {dia.NumDia}</h5>
-    <div>
-      {ejercicios[dia.IdDia] && ejercicios[dia.IdDia].map((ejercicio) => (
-        <div key={ejercicio.IdEjercicio} style={{ marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #eee' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0' }}>{ejercicio.Ejercicio}</h3>
-            <span style={{ fontSize: '14px', color: '#666', backgroundColor: '#e9e9e9', padding: '2px 6px', borderRadius: '4px' }}>
-              {!isNaN(ejercicio.Peso) && ejercicio.Peso.trim() !== '' ? `${ejercicio.Peso} kg` : ejercicio.Peso} | {ejercicio.Serie} series | {ejercicio.Repe} repeticiones
-            </span>
-          </div>
-          <p style={{ fontSize: '14px', color: '#666', margin: '0' }}>{ejercicio.Comentario}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-))}
+            {dias
+            .filter(dia => ejercicios[dia.IdDia] && ejercicios[dia.IdDia].length > 0)
+            .map((dia, index) => (
+              <div
+                key={dia.IdDia}
+                className="pdfPage"
+                style={{ marginTop: '20px', position: 'relative',  pageBreakAfter: index === dias.length - 1 ? 'auto' : 'always', }} // Forzar salto de página
+              >
+                <h5>Día {dia.NumDia}</h5>
+                <div>
+                  {ejercicios[dia.IdDia] && ejercicios[dia.IdDia].map((ejercicio) => (
+                    <div key={ejercicio.IdEjercicio} style={{ marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #eee' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0' }}>{ejercicio.Ejercicio}</h3>
+                        <span style={{ fontSize: '14px', color: '#666', backgroundColor: '#e9e9e9', padding: '2px 6px', borderRadius: '4px' }}>
+                          {!isNaN(ejercicio.Peso) && ejercicio.Peso.trim() !== '' ? `${ejercicio.Peso} kg` : ejercicio.Peso} | {ejercicio.Serie} series | {ejercicio.Repe} repeticiones
+                        </span>
+                      </div>
+                      <div style={{display:'flex', alignItems:'center'}}>
+                      {/* <span style={{ width: '2.8cm', height: '2cm', display: 'block', overflow: 'hidden', position: 'relative', textAlign:'center'}}>
+                        <img
+                          src={ejercicio.Imagen ? `${getBaseUrl()}/${ejercicio.Imagen}` : './assets/default.jpg'} 
+                          alt={ejercicio.Ejercicio}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      </span> */}
+                      {Categoria === "Virtual" && (
+                        <span
+                          style={{
+                            width: '2.8cm',
+                            height: '2cm',
+                            display: 'block',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <img
+                            src={ejercicio.Imagen ? `${getBaseUrl()}/${ejercicio.Imagen}` : './assets/default.jpg'}
+                            alt={ejercicio.Ejercicio}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              width: 'auto',
+                              height: 'auto',
+                              objectFit: 'contain',
+                            }}
+                          />
+                        </span>
+                      )}
+
+
+                        <p style={{ fontSize: '14px', color: '#666', margin: '0' }}>{ejercicio.Comentario}</p>
+                      </div>
+                      
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
 
           </div>
         </Modal.Body>

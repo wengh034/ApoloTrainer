@@ -3,6 +3,7 @@ import { Modal, Button, Form, Dropdown } from 'react-bootstrap';
 import SVGComponent from '../SVGComponent';
 import { showToast } from '../toastUtils';
 import { getBaseUrl } from '@/Config.js';
+import DragAndDropUploader from './dragAndDropUploader';
 
 const BackupModal = ({ show, onClose }) => {
   const [backupFiles, setBackupFiles] = useState([]);
@@ -202,9 +203,15 @@ useEffect(() => {
           </div>
           </div>
         </div>
-        <div style={{ marginTop: '10px' }}>
+        <div style={{ marginTop: '10px', width: '100%', padding:'1em 2em'}}>
+          <div style={{display:'flex'}}>
+          <div> <SVGComponent src="./assets/attachment.svg" color="#1f2937" /></div>
+          <div style={{ marginLeft: '3px'}}> <b>Mantenimiento de ilustraciones</b></div>
+          </div>
+          <div style={{marginTop: '10px'}}>
+            <DragAndDropUploader/>
+          </div>
         </div>
-
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>

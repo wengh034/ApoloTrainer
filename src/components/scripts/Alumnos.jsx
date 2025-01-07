@@ -36,8 +36,6 @@ const Alumnos = ({onAlumnoEliminado, setIsSubView, onAlumnoSeleccionado}) => {
   const [rutinas, setRutinas] = useState([]);
   const [activeSidebarIndex, setActiveSidebarIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar el modal
-  const [toastType, setToastType] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
   const handleShow = () => setShowModal(true);
   const [showModal, setShowModal] = useState(false);
   const handleClose = () => setShowModal(false);
@@ -51,7 +49,6 @@ const Alumnos = ({onAlumnoEliminado, setIsSubView, onAlumnoSeleccionado}) => {
   const handleToggle = (index) => {
     setActiveIndex(index);
   };
-
   
   const handleTabChange = (activeTabIndex) => {
     const tabNames = ['Estadísticas', 'Rutinas', 'Macrociclos', 'Pagos', 'Info'];
@@ -390,7 +387,8 @@ const toggleSortOrder = () => {
     rutina={rutina}
     onDiaAgregado={handleRutinaActualizada}
     onEliminarRutina={handleEliminarRutina}
-    NombreAlumno={`${selectedAlumno.Nombre} ${selectedAlumno.Apellido}`} 
+    NombreAlumno={`${selectedAlumno.Nombre} ${selectedAlumno.Apellido}`}
+    AlumnoCat={selectedAlumno.Categoria}
     />
   ))
 )}
