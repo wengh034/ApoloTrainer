@@ -122,6 +122,9 @@ app.on('ready', () => {
 
   // Chequear actualizaciones al iniciar la app
   log.info('Checking for updates...');
+  autoUpdater.logger = log;
+  autoUpdater.logger.transports.file.level = 'debug';
+
   autoUpdater.checkForUpdates();
 });
 
