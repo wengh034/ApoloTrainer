@@ -56,9 +56,6 @@ const FinanceSummary = () => {
 
   return (
     <div className="finance-container">
-      <div className="finance-header">
-        {/* <h1>Finanzas</h1> */}
-      </div>
       <div className="finance-body">
         {/* Primer conjunto de elementos flex */}
         <div className="flex-row" style={{ marginBottom: '2em', display: 'flex', alignItems: 'flex-start' }}>

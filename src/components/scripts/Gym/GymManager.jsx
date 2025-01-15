@@ -20,10 +20,6 @@ const GymManager = () => {
     return number.toLocaleString('de-DE');
   };
 
-  // useEffect(() => {
-  //   fetchGyms();
-  // }, []);
-
   const handleOpenDeleteModal = (id) => {
     setGymToDelete(id);
     setShowModalDelete(true);

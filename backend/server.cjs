@@ -519,44 +519,6 @@ app.get('/api/dias/:diaId/ejercicios', (req, res) => {
   });
 });
 // Endpoint para actualizar un ejercicio
-// app.put('/api/ejercicios/:id', (req, res) => {
-//   const { id } = req.params;
-//   const { Ejercicio, Peso, Serie, Repe, Comentario } = req.body;
-
-//   if (!Ejercicio || !Peso || !Serie || !Repe || !Comentario) {
-//     res.status(400).json({ error: 'Todos los campos son requeridos' });
-//     return;
-//   }
-
-//   const sql = `
-//     UPDATE Ejercicio
-//     SET Ejercicio = ?, Peso = ?, Serie = ?, Repe = ?, Comentario = ?
-//     WHERE IdEjercicio = ?
-//   `;
-//   const params = [Ejercicio, Peso, Serie, Repe, Comentario, id];
-
-//   db.run(sql, params, function(err) {
-//     if (err) {
-//       res.status(500).json({ error: err.message });
-//       return;
-//     }
-//     if (this.changes === 0) {
-//       res.status(404).json({ error: 'Ejercicio no encontrado' });
-//       return;
-//     }
-//     res.json({
-//       message: 'success',
-//       data: {
-//         IdEjercicio: id,
-//         Ejercicio,
-//         Peso,
-//         Serie,
-//         Repe,
-//         Comentario
-//       },
-//     });
-//   });
-// });
 app.put('/api/ejercicios/:id', (req, res) => {
   const { id } = req.params; // ID del ejercicio a actualizar
   const { Ejercicio, Peso, Serie, Repe, Comentario } = req.body;
@@ -983,11 +945,7 @@ WHERE PeriodControl.IdPeriod = ?
   });
 });
 
-
-
 // FIN FINANZAS
-
-
 
 // BACKUPS
 // Ruta para crear una copia de seguridad
@@ -1212,6 +1170,11 @@ app.post('/upload', upload.array('files'), (req, res) => {
 });
 
 app.use('/illustrations', express.static(uploadDirectory));
+
+// Endpoint para obtener el directorio de subida
+app.get('/get-directory', (req, res) => {
+  res.json({ directory: uploadDirectory });
+});
 //Fin subir archivos de imagen
 
 //Migraciones de db

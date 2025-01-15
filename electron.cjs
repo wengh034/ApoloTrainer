@@ -5,6 +5,7 @@ const { fork } = require('child_process');
 const log = require('electron-log');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
+const migrationScript = require('./backend/migrations/checkAndMigrateDb.cjs');
 
 ipcMain.on('splash:minimize', () => {
   splashWindow.minimize();
@@ -15,9 +16,10 @@ ipcMain.on('splash:close', () => {
 });
 
 app.disableHardwareAcceleration();
+
 let splashWindow;
-let window;
-let isWindowReady = false;
+let mainWindow;
+let isMainWindowReady = false;
 let isContentLoaded = false;
 let backendProcess;
 
@@ -44,7 +46,7 @@ function createSplashWindow() {
 }
 
 function createMainWindow() {
-  window = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     show: false,
     width: 1200,
     height: 800,
@@ -52,117 +54,153 @@ function createMainWindow() {
     minHeight: 800,
     frame: false,
     backgroundColor: '#111827',
-    icon: path.join(__dirname, 'assets', 'ApT.png'),
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      disableInitialBlankWindow: true,
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
     }
   });
 
   if (process.env.NODE_ENV === 'development') {
-    window.loadURL('http://localhost:5173/');
+    mainWindow.loadURL('http://localhost:5173/');
   } else {
-    window.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 
-  window.once('ready-to-show', () => {
-    isWindowReady = true;
+  mainWindow.once('ready-to-show', () => {
+    isMainWindowReady = true;
     checkAndShowMainWindow();
   });
 
-  window.webContents.once('did-finish-load', () => {
+  mainWindow.webContents.once('did-finish-load', () => {
     isContentLoaded = true;
     checkAndShowMainWindow();
   });
 }
 
 function checkAndShowMainWindow() {
-  if (isWindowReady && isContentLoaded) {
+  if (isMainWindowReady && isContentLoaded) {
     splashWindow.close();
-    window.maximize();
-    setupWindowControls(window);
-    window.show();
+    mainWindow.maximize();
+    setupWindowControls(mainWindow);
+    mainWindow.show();
   }
 }
 
 app.on('ready', () => {
-  log.info('App is ready. Attempting to start the backend server.');
+  log.info('App is ready. Starting backend and checking updates.');
 
-  const backendPath = app.isPackaged 
-  ? path.join(process.resourcesPath, 'backend', 'server.cjs') 
-  : path.join(__dirname, 'backend', 'server.cjs');
-  log.info(`Backend path: ${backendPath}`);
+  // Start backend process
+  const backendPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'backend', 'server.cjs')
+    : path.join(__dirname, 'backend', 'server.cjs');
 
-  if (!fs.existsSync(backendPath)) {
-    log.error(`Backend file not found at: ${backendPath}`);
-    return;
-  }
-
-  try {
+  if (fs.existsSync(backendPath)) {
     backendProcess = fork(backendPath, {
-      env: { ...process.env, BACKEND_PORT: 5000 }, // Configura variables de entorno si es necesario
+      env: { ...process.env, BACKEND_PORT: 5000 },
     });
 
-    backendProcess.on('message', (message) => {
-      log.info(`Message from backend: ${message}`);
-    });
-
-    backendProcess.on('error', (err) => log.error('Error in backend process:', err));
-    backendProcess.on('exit', (code, signal) => {
-      log.info(`Backend process exited with code: ${code}, signal: ${signal}`);
-    });
-
-    log.info('Backend process started successfully.');
-  } catch (err) {
-    log.error('Failed to start backend process:', err);
+    backendProcess.on('message', (message) => log.info(`Backend: ${message}`));
+    backendProcess.on('error', (err) => log.error('Backend error:', err));
+    backendProcess.on('exit', (code, signal) => log.info(`Backend exited: code=${code}, signal=${signal}`));
+  } else {
+    log.error('Backend not found:', backendPath);
   }
 
+  // Create splash window
   createSplashWindow();
 
-  // Chequear actualizaciones al iniciar la app
-  log.info('Checking for updates...');
+  // Check for updates
   autoUpdater.logger = log;
-  autoUpdater.logger.transports.file.level = 'debug';
-
-  autoUpdater.checkForUpdates();
+  autoUpdater.logger.transports.file.level = 'info';
+  autoUpdater.checkForUpdatesAndNotify();
 });
 
-// Escuchar eventos de actualizaciones
+// Update events
+// Evento para cuando se detecta que hay una actualización disponible
 autoUpdater.on('update-available', () => {
   log.info('Update available.');
-  // Enviar a React para que se muestre el modal
-  if (window) {
-    window.webContents.send('update-available', { update: true });
+  if (mainWindow) {
+    // Enviar el estado de la actualización a la aplicación frontend
+    mainWindow.webContents.send('update-available', { update: true });
   }
 });
 
+// Evento para cuando no hay actualización disponible
 autoUpdater.on('update-not-available', () => {
   log.info('No update available.');
-  if (window) {
-    window.webContents.send('update-available', { update: false });
+  if (mainWindow) {
+    // Enviar el estado a la aplicación frontend
+    mainWindow.webContents.send('update-available', { update: false });
+  }
+});
+// Evento para cuando la actualización ha sido descargada
+// autoUpdater.on('update-downloaded', () => {
+//   log.info('Update downloaded.');
+  
+//   if (mainWindow) {
+//     // Enviar el evento para notificar que la actualización está lista
+//     mainWindow.webContents.send('update-downloaded');
+//   }
+// });
+
+// Evento para cuando la actualización ha sido descargada
+autoUpdater.on('update-downloaded', async () => {
+  log.info('Update downloaded.');
+
+  try {
+    log.info('Checking and migrating database if necessary...');
+    const migrationSuccess = await migrationScript.checkAndMigrate(); // Ejecutar la verificación y migración
+
+    if (migrationSuccess) {
+      log.info('Migration completed successfully.');
+      
+      // Notificar al frontend que la actualización está lista para reiniciar
+      if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded'); // Notificar que la actualización se descargó
+      }
+    } else {
+      log.error('Migration failed. Informing the frontend.');
+      if (mainWindow) {
+        mainWindow.webContents.send('update-error', {
+          message: 'Migration failed. Update cannot proceed.',
+        });
+      }
+    }
+  } catch (error) {
+    log.error('Error during migration:', error);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-error');
+    }
+  }
+  
+});
+
+// Evento para cuando ocurre un error en la verificación de la actualización
+autoUpdater.on('update-error', (error) => {
+  log.error('Update verification failed:', error);
+
+  if (mainWindow) {
+    // Enviar el mensaje al frontend para mostrar el toast de error
+    mainWindow.webContents.send('update-error', {
+      message: 'Verificación fallida. Revise su conexión',  // Mensaje para el usuario
+    });
   }
 });
 
-autoUpdater.on('update-downloaded', () => {
-  log.info('Update downloaded. Ready to install.');
-  // Enviar a React que la actualización está descargada
-  if (window) {
-    window.webContents.send('update-downloaded');
-  }
-});
-
+// Escuchar para reiniciar la app cuando el usuario lo decida
 ipcMain.on('restart-app', () => {
-  log.info('Restarting app to install update...');
+  log.info('Restarting to install update.');
   autoUpdater.quitAndInstall();
 });
 
 app.on('window-all-closed', () => {
+  if (backendProcess) {
+    backendProcess.kill();
+    log.info('Backend process killed.');
+  }
   if (process.platform !== 'darwin') {
-    if (backendProcess) {
-      backendProcess.kill();
-      log.info('Backend process killed.');
-    }
     app.quit();
   }
 });

@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-const { ipcRenderer } = window.require('electron');
+// const { ipcRenderer } = window.require('electron');
+const { ipcRenderer } = window.electron;
 
 // Configura los listeners una vez que el contenido esté montado
 window.addEventListener('DOMContentLoaded', () => {
