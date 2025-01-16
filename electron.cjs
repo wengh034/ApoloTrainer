@@ -5,7 +5,6 @@ const { fork } = require('child_process');
 const log = require('electron-log');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
-const migrationScript = require('./backend/migrations/checkAndMigrateDb.cjs');
 
 ipcMain.on('splash:minimize', () => {
   splashWindow.minimize();
@@ -151,31 +150,51 @@ autoUpdater.on('update-downloaded', async () => {
 
   try {
     log.info('Checking and migrating database if necessary...');
-    const migrationSuccess = await migrationScript.checkAndMigrate(); // Ejecutar la verificación y migración
+    
+    // Ejecutar el script de migración desde el contexto del backend
+    const migrationProcess = require('child_process').fork(
+      path.join(__dirname, 'backend', 'migrations', 'checkAndMigrateDb.cjs'), {
+        cwd: path.join(__dirname, 'backend') // Establecer el directorio de trabajo del backend
+      }
+    );
 
-    if (migrationSuccess) {
-      log.info('Migration completed successfully.');
-      
-      // Notificar al frontend que la actualización está lista para reiniciar
-      if (mainWindow) {
-        mainWindow.webContents.send('update-downloaded'); // Notificar que la actualización se descargó
+    migrationProcess.on('message', (message) => {
+      log.info('Migration process message:', message);
+    });
+
+    migrationProcess.on('exit', (code) => {
+      if (code === 0) {
+        log.info('Migration completed successfully.');
+        
+        // Notificar al frontend que la actualización está lista para reiniciar
+        if (mainWindow) {
+          mainWindow.webContents.send('update-downloaded'); // Notificar que la actualización se descargó
+        }
+      } else {
+        log.error('Migration failed.');
+        if (mainWindow) {
+          mainWindow.webContents.send('update-error', {
+            message: 'Migration failed. Update cannot proceed.',
+          });
+        }
       }
-    } else {
-      log.error('Migration failed. Informing the frontend.');
+    });
+
+    migrationProcess.on('error', (error) => {
+      log.error('Error during migration process:', error);
       if (mainWindow) {
-        mainWindow.webContents.send('update-error', {
-          message: 'Migration failed. Update cannot proceed.',
-        });
+        mainWindow.webContents.send('update-error');
       }
-    }
+    });
+
   } catch (error) {
     log.error('Error during migration:', error);
     if (mainWindow) {
       mainWindow.webContents.send('update-error');
     }
   }
-  
 });
+
 
 // Evento para cuando ocurre un error en la verificación de la actualización
 autoUpdater.on('update-error', (error) => {

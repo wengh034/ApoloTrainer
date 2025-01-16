@@ -64,8 +64,7 @@
       "electron.cjs",
       "node_modules/**/*",
       "preload.cjs",
-      "windowControls.cjs",
-      "package.json"
+      "windowControls.cjs"
     ],
     "extraResources": [
       {

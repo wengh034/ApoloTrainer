@@ -1,66 +1,82 @@
 const fs = require('fs');
 const path = require('path');
-const semver = require('semver');  // Necesitamos este paquete para comparar versiones
-const { version: currentVersion } = require('../package.json');  // Versión actual del backend
+const semver = require('semver');
+const { version: currentVersion } = require('../package.json');
+
+const log = (...args) => process.send && process.send({ log: args.join(' ') });
 
 const getNewVersionFromPackage = () => {
-  // Aquí asumimos que el nuevo package.json es el que ha sido actualizado y descargado
   const newPackagePath = path.join(process.resourcesPath, 'backend', 'package.json');
   if (fs.existsSync(newPackagePath)) {
     const newPackageJson = require(newPackagePath);
     return newPackageJson.version;
   }
-  return null;  // Si no se encuentra el package.json nuevo, retornamos null
+  return null;
 };
 
-// Verificar si la migración es necesaria comparando versiones
 const shouldMigrate = (currentVersion, newVersion) => {
   if (!newVersion) {
-    console.error('No new version found. Migration cannot proceed.');
+    log('No new version found. Migration cannot proceed.');
     return false;
   }
-  
-  // Si la nueva versión tiene un número mayor en alguna de las partes (major, minor, patch), se debe hacer la migración
-  return semver.lt(currentVersion, newVersion);
+  return semver.neq(currentVersion, newVersion); // Verifica si las versiones son diferentes
 };
 
-// Ejecutar migración si es necesario
-const runMigration = () => {
-  // Lógica de migración aquí
-  console.log('Running database migration...');
-  // Ejecutar el script de migración
-  // Reemplaza con el path correcto a tu script de migración
-  const migrationScriptPath = path.join(__dirname, 'migrateDb.js');
+const ignoreNewDatabaseIfVersionsMatch = () => {
+  const newDbPath = path.join(process.resourcesPath, 'backend', 'newDatabase.db');
+  const oldDbPath = path.join(process.resourcesPath, 'backend', 'oldDatabase.db');
 
+  if (fs.existsSync(newDbPath)) {
+    log('Versions are equal. Ignoring the new database and keeping the old one.');
+    fs.unlinkSync(newDbPath); // Elimina la base de datos nueva
+    log('New database ignored.');
+  } else {
+    log('New database does not exist. Nothing to ignore.');
+  }
+};
+
+const runMigration = () => {
+  const migrationScriptPath = path.join(__dirname, 'migrateDb.js');
   if (fs.existsSync(migrationScriptPath)) {
     const migrationProcess = require('child_process').fork(migrationScriptPath);
-
     migrationProcess.on('message', (message) => {
-      console.log(`Migration process message: ${message}`);
+      log(`Migration process message: ${message}`);
     });
-
     migrationProcess.on('exit', (code) => {
       if (code === 0) {
-        console.log('Migration completed successfully.');
-        // Aquí podrías seguir con la ejecución de la app si la migración es exitosa
+        log('Migration completed successfully.');
+        process.exit(0); // Éxito
       } else {
-        console.error('Migration failed.');
+        log('Migration failed.');
+        process.exit(1); // Error
       }
     });
   } else {
-    console.error('Migration script not found!');
+    log('Migration script not found!');
+    process.exit(1);
   }
 };
 
-// Función principal
 const checkAndMigrate = () => {
   const newVersion = getNewVersionFromPackage();
 
-  // Comparar versiones y ejecutar migración si es necesario
+  if (!newVersion) {
+    log('New version not found. Exiting migration process.');
+    process.exit(1);
+  }
+
+  // Si las versiones son iguales, ignorar la nueva base de datos
+  if (semver.eq(currentVersion, newVersion)) {
+    ignoreNewDatabaseIfVersionsMatch();
+    process.exit(0);
+  }
+
+  // Si las versiones son diferentes, realizar la migración
   if (shouldMigrate(currentVersion, newVersion)) {
     runMigration();
   } else {
-    console.log('No migration needed. Versions are up-to-date.');
+    log('No migration needed.');
+    process.exit(0);
   }
 };
 
